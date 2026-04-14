@@ -1,0 +1,507 @@
+import { useState } from "react";
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend
+} from "recharts";
+
+// ===================== DATA FROM EXCEL =====================
+
+const kpiData = [
+  { label: "Realisasi April", value: "114.819", unit: "Ton", pct: "42,7%", pctLabel: "% Prognosa", up: true, color: "#16a34a" },
+  { label: "Realisasi S.D April", value: "842.272", unit: "Ton", pct: "84,5%", pctLabel: "% Prognosa S.D", up: true, color: "#2563eb" },
+  { label: "Prognosa April", value: "269.110", unit: "Ton", pct: "28,7%", pctLabel: "% Alokasi 2026", up: null, color: "#7c3aed" },
+  { label: "Stok Lini III", value: "139.973", unit: "Ton", pct: "—", pctLabel: "Tersedia", up: null, color: "#b45309" },
+];
+
+const produkData = [
+  { produk: "UREA", realisasi: 55265.95, prognosa: 132310.65, pct: 41.8, stok: 71052.05, sdApril: 391976.35, alokasi: 1387660.59, color: "#1d4ed8" },
+  { produk: "NPK PHONSKA", realisasi: 53204.5, prognosa: 120962.73, pct: 44.0, stok: 59437.69, sdApril: 396425.95, alokasi: 1279574, color: "#059669" },
+  { produk: "NPK FK KAKAO", realisasi: 256.35, prognosa: 422.34, pct: 60.7, stok: 1394.45, sdApril: 1324.8, alokasi: 3365.45, color: "#7c3aed" },
+  { produk: "ORGANIK", realisasi: 5580.52, prognosa: 13879.79, pct: 40.2, stok: 5898.68, sdApril: 48391.6, alokasi: 219495.46, color: "#d97706" },
+  { produk: "ZA", realisasi: 212.75, prognosa: 764.8, pct: 27.8, stok: 1861.85, sdApril: 2897.35, alokasi: 11275, color: "#be185d" },
+  { produk: "SP36", realisasi: 299.25, prognosa: 770, pct: 38.9, stok: 328.6, sdApril: 1255.6, alokasi: 28849.96, color: "#0891b2" },
+];
+
+const provinsiData = [
+  { provinsi: "Jawa Timur", realisasi: 95313.28, prognosa: 226921.85, pct: 42.0, stok: 47264.45, sm: "3A" },
+  { provinsi: "Bali", realisasi: 2175.2, prognosa: 3774.64, pct: 57.6, stok: 6479.58, sm: "3B" },
+  { provinsi: "NTB", realisasi: 8875.73, prognosa: 20511.12, pct: 43.3, stok: 45549.74, sm: "3B" },
+  { provinsi: "NTT", realisasi: 2808.35, prognosa: 5506.2, pct: 51.0, stok: 16357.65, sm: "3B" },
+  { provinsi: "Kaltim", realisasi: 1307.45, prognosa: 2993.5, pct: 43.7, stok: 6957.19, sm: "3B" },
+  { provinsi: "Kalsel", realisasi: 3942.26, prognosa: 8626, pct: 45.7, stok: 15644.95, sm: "3B" },
+  { provinsi: "Kaltara", realisasi: 397.05, prognosa: 777, pct: 51.1, stok: 1719.76, sm: "3B" },
+];
+
+const managerData = [
+  { name: "Aris Setyowiyono", realisasi: 24606.33, prognosa: 51167.87, pct: 48.1, rank: 1 },
+  { name: "Sri Purwanto", realisasi: 20752.12, prognosa: 53765.0, pct: 38.6, rank: 2 },
+  { name: "Nanda Tryhadi", realisasi: 5646.76, prognosa: 12396.5, pct: 45.6, rank: 3 },
+  { name: "Sutikno W.D.", realisasi: 34155.18, prognosa: 90899.92, pct: 37.6, rank: 4 },
+  { name: "Oktario Orlando", realisasi: 15799.65, prognosa: 31089.07, pct: 50.8, rank: 5 },
+  { name: "Taufik Muhlisin", realisasi: 2175.2, prognosa: 3774.64, pct: 57.6, rank: 6 },
+  { name: "Hijradma P.H.", realisasi: 11684.08, prognosa: 26017.32, pct: 44.9, rank: 7 },
+];
+
+// Daily data for April (1-13)
+const harianData = [
+  { hari: "1", total: 7060.83, urea: 3465, npk: 3201.05, organik: 381.28, za: 7.5, sp36: 6 },
+  { hari: "2", total: 10219.41, urea: 4787.15, npk: 4785.55, organik: 601.36, za: 19.35, sp36: 26 },
+  { hari: "3", total: 600.9, urea: 363.8, npk: 203.1, organik: 2.8, za: 0, sp36: 31.2 },
+  { hari: "4", total: 9884.85, urea: 4750.15, npk: 4643.1, organik: 452.0, za: 1.6, sp36: 8 },
+  { hari: "5", total: 293.35, urea: 136.1, npk: 157.25, organik: 0, za: 0, sp36: 0 },
+  { hari: "6", total: 12424.92, urea: 6142.45, npk: 5629.95, organik: 581.12, za: 19, sp36: 14 },
+  { hari: "7", total: 13915.54, urea: 6956.95, npk: 6187.85, organik: 680.04, za: 50, sp36: 20.35 },
+  { hari: "8", total: 13637.36, urea: 6600.2, npk: 6353.65, organik: 614.76, za: 13.05, sp36: 29.7 },
+  { hari: "9", total: 13354.51, urea: 6618.5, npk: 5948.4, organik: 707.56, za: 9.05, sp36: 41 },
+  { hari: "10", total: 11996.2, urea: 5893.5, npk: 5506.65, organik: 536.4, za: 32.65, sp36: 20 },
+  { hari: "11", total: 9193.42, urea: 4103.9, npk: 4511.2, organik: 487.72, za: 34.6, sp36: 46 },
+  { hari: "12", total: 301.9, urea: 73.75, npk: 212.25, organik: 8, za: 0, sp36: 0 },
+  { hari: "13", total: 11936.13, urea: 5374.5, npk: 5864.5, organik: 527.48, za: 25.95, sp36: 57 },
+];
+
+const anperData = [
+  { name: "PKG", urea: 33399.35, npk: 49645.55, label: "Petrokimia Gresik" },
+  { name: "PKT", urea: 7390.65, npk: 3558.95, label: "Pupuk Kaltim" },
+  { name: "PSP", urea: 14475.95, npk: 0, label: "Pupuk Sriwidjaja" },
+  { name: "PIM", urea: 0, npk: 0, label: "Pupuk Iskandar Muda" },
+];
+
+const COLORS_PIE = ["#1d4ed8", "#059669", "#7c3aed", "#d97706", "#be185d", "#0891b2"];
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 8, padding: "10px 14px", fontSize: 12 }}>
+        <p style={{ color: "#94a3b8", marginBottom: 6, fontWeight: 600 }}>{label}</p>
+        {payload.map((p, i) => (
+          <p key={i} style={{ color: "#e2e8f0", margin: "2px 0" }}>
+            <span style={{ color: p.color }}>■</span> {p.name}: <strong>{typeof p.value === 'number' ? p.value.toLocaleString('id-ID', { maximumFractionDigits: 1 }) : p.value} Ton</strong>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+export default function DashboardPSO() {
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const tabs = [
+    { id: "overview", label: "Ringkasan" },
+    { id: "produk", label: "Per Produk" },
+    { id: "provinsi", label: "Per Provinsi" },
+    { id: "harian", label: "Harian" },
+    { id: "manager", label: "Per Manager" },
+  ];
+
+  const totalRealisasi = produkData.reduce((a, b) => a + b.realisasi, 0);
+
+  return (
+    <div style={{ fontFamily: "'Segoe UI', 'Inter', sans-serif", background: "#0b1120", minHeight: "100vh", color: "#cbd5e1" }}>
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", borderBottom: "1px solid #1e3a5f", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 36, height: 36, background: "linear-gradient(135deg, #16a34a, #22c55e)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, color: "#fff" }}>P</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.01em" }}>Dashboard PSO Regional 3</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>Laporan Realisasi Harian Penyaluran Pupuk Bersubsidi</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#22c55e" }}>13 April 2026</div>
+            <div style={{ fontSize: 10, color: "#64748b" }}>Satuan: Ton · 10 Hari Efektif</div>
+          </div>
+          <div style={{ background: "#16a34a22", border: "1px solid #16a34a55", borderRadius: 6, padding: "4px 10px", fontSize: 11, color: "#4ade80", fontWeight: 600 }}>LIVE</div>
+        </div>
+      </div>
+
+      {/* Nav Tabs */}
+      <div style={{ background: "#0f172a", borderBottom: "1px solid #1e3a5f", padding: "0 28px", display: "flex", gap: 4, overflowX: "auto" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            background: activeTab === t.id ? "#1e3a5f" : "transparent",
+            border: "none", borderBottom: activeTab === t.id ? "2px solid #3b82f6" : "2px solid transparent",
+            color: activeTab === t.id ? "#93c5fd" : "#64748b",
+            padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: activeTab === t.id ? 600 : 400,
+            whiteSpace: "nowrap", transition: "all 0.15s",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      <div style={{ padding: "24px 28px", maxWidth: 1400, margin: "0 auto" }}>
+
+        {/* ===== OVERVIEW TAB ===== */}
+        {activeTab === "overview" && (
+          <>
+            {/* KPI Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
+              {kpiData.map((k, i) => (
+                <div key={i} style={{ background: "linear-gradient(160deg,#0f172a,#1e293b)", border: "1px solid #1e3a5f", borderRadius: 10, padding: "18px 20px", position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", top: 0, right: 0, width: 60, height: 60, background: `radial-gradient(circle, ${k.color}22, transparent 70%)`, borderRadius: "0 10px 0 0" }} />
+                  <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{k.label}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>
+                    {k.value} <span style={{ fontSize: 13, color: "#64748b", fontWeight: 400 }}>Ton</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: k.color, fontFamily: "monospace" }}>{k.pct}</span>
+                    <span style={{ fontSize: 11, color: "#475569" }}>{k.pctLabel}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* SM Regional Comparison */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+              {[
+                { sm: "SM REGIONAL 3A", realisasi: 95313.28, prognosa: 226921.85, pct: 42.0, sdApril: 646990.46, alokasi: 2038387.21 },
+                { sm: "SM REGIONAL 3B", realisasi: 19506.04, prognosa: 42188.46, pct: 46.2, sdApril: 195281.19, alokasi: 891833.25 }
+              ].map((sm, i) => (
+                <div key={i} style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "18px 20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 2 }}>{sm.sm}</div>
+                      <div style={{ fontSize: 11, color: "#475569" }}>Realisasi April 2026</div>
+                    </div>
+                    <div style={{ background: i === 0 ? "#1e3a5f" : "#1c2d3a", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700, color: i === 0 ? "#60a5fa" : "#34d399" }}>{sm.pct.toFixed(1)}%</div>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: i === 0 ? "#60a5fa" : "#34d399", marginBottom: 10, letterSpacing: "-0.02em" }}>
+                    {sm.realisasi.toLocaleString('id-ID', { maximumFractionDigits: 0 })} <span style={{ fontSize: 12, color: "#475569", fontWeight: 400 }}>Ton</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {[
+                      { label: "Prognosa Apr", val: sm.prognosa },
+                      { label: "S.D April", val: sm.sdApril },
+                    ].map((item, j) => (
+                      <div key={j} style={{ background: "#0b1120", borderRadius: 6, padding: "8px 10px" }}>
+                        <div style={{ fontSize: 10, color: "#475569", marginBottom: 3 }}>{item.label}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", fontFamily: "monospace" }}>{item.val.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, color: "#475569" }}>Pencapaian Prognosa</span>
+                      <span style={{ fontSize: 11, fontFamily: "monospace", color: i === 0 ? "#60a5fa" : "#34d399" }}>{sm.pct.toFixed(1)}%</span>
+                    </div>
+                    <div style={{ background: "#1e293b", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                      <div style={{ height: "100%", background: i === 0 ? "linear-gradient(90deg,#1d4ed8,#60a5fa)" : "linear-gradient(90deg,#059669,#34d399)", width: `${Math.min(sm.pct, 100)}%`, borderRadius: 4 }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Chart - Produk Bar + Pie */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Realisasi vs Prognosa April — Per Produk</div>
+                <div style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>Satuan: Ton</div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={produkData} margin={{ left: -20, right: 5 }} barGap={3}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <XAxis dataKey="produk" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="prognosa" name="Prognosa" fill="#1e3a5f" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="realisasi" name="Realisasi" radius={[3, 3, 0, 0]}>
+                      {produkData.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Porsi Realisasi</div>
+                <div style={{ fontSize: 11, color: "#475569", marginBottom: 10 }}>Distribusi per produk</div>
+                <ResponsiveContainer width="100%" height={130}>
+                  <PieChart>
+                    <Pie data={produkData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="realisasi">
+                      {produkData.map((entry, i) => <Cell key={i} fill={entry.color} stroke="transparent" />)}
+                    </Pie>
+                    <Tooltip formatter={(v) => [`${v.toLocaleString('id-ID', { maximumFractionDigits: 0 })} Ton`, ""]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
+                  {produkData.map((p, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 11, color: "#94a3b8" }}>{p.produk}</span>
+                      </div>
+                      <span style={{ fontSize: 11, fontFamily: "monospace", color: "#e2e8f0", fontWeight: 600 }}>{((p.realisasi / totalRealisasi) * 100).toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ===== PRODUK TAB ===== */}
+        {activeTab === "produk" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 20 }}>
+              {produkData.map((p, i) => (
+                <div key={i} style={{ background: "#0f172a", border: `1px solid ${p.color}44`, borderRadius: 10, padding: "18px 20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: p.color }}>{p.produk}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: "#f1f5f9" }}>{p.pct.toFixed(1)}<span style={{ fontSize: 11, color: "#64748b" }}>%</span></div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                    {[
+                      { label: "Realisasi Apr", val: p.realisasi, highlight: true },
+                      { label: "Prognosa Apr", val: p.prognosa },
+                      { label: "S.D April", val: p.sdApril },
+                      { label: "Stok Lini III", val: p.stok },
+                    ].map((item, j) => (
+                      <div key={j} style={{ background: "#0b1120", borderRadius: 6, padding: "8px 10px" }}>
+                        <div style={{ fontSize: 10, color: "#475569", marginBottom: 2 }}>{item.label}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: item.highlight ? p.color : "#94a3b8", fontFamily: "monospace" }}>
+                          {item.val.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: "#475569" }}>Real / Prognosa</span>
+                      <span style={{ fontSize: 10, fontFamily: "monospace", color: p.color }}>{p.pct.toFixed(1)}%</span>
+                    </div>
+                    <div style={{ background: "#1e293b", borderRadius: 4, height: 5, overflow: "hidden" }}>
+                      <div style={{ height: "100%", background: p.color, width: `${Math.min(p.pct, 100)}%`, borderRadius: 4 }} />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: "#475569" }}>S.D Apr / Alokasi 2026</span>
+                      <span style={{ fontSize: 10, fontFamily: "monospace", color: "#94a3b8" }}>{((p.sdApril / p.alokasi) * 100).toFixed(1)}%</span>
+                    </div>
+                    <div style={{ background: "#1e293b", borderRadius: 4, height: 5, overflow: "hidden" }}>
+                      <div style={{ height: "100%", background: `${p.color}88`, width: `${Math.min((p.sdApril / p.alokasi) * 100, 100)}%`, borderRadius: 4 }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ANPER data */}
+            <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Realisasi per ANPER (Agen Penyalur)</div>
+              <div style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>UREA & NPK Phonska — April 2026</div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={anperData} margin={{ left: -10, right: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: "#94a3b8" }} />
+                  <Bar dataKey="urea" name="UREA" fill="#1d4ed8" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="npk" name="NPK Phonska" fill="#059669" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {/* ===== PROVINSI TAB ===== */}
+        {activeTab === "provinsi" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 14, marginBottom: 14 }}>
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Realisasi vs Prognosa per Provinsi</div>
+                <div style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>April 2026 · Satuan: Ton</div>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={provinsiData} layout="vertical" margin={{ left: 10, right: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis dataKey="provinsi" type="category" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} width={80} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="prognosa" name="Prognosa" fill="#1e3a5f" radius={[0, 3, 3, 0]} />
+                    <Bar dataKey="realisasi" name="Realisasi" fill="#3b82f6" radius={[0, 3, 3, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 16 }}>Detail per Provinsi</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {provinsiData.map((p, i) => (
+                    <div key={i}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                        <div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>{p.provinsi}</span>
+                          <span style={{ fontSize: 10, color: "#475569", marginLeft: 6, background: "#1e293b", padding: "1px 6px", borderRadius: 3 }}>SM {p.sm}</span>
+                        </div>
+                        <span style={{ fontSize: 12, fontFamily: "monospace", color: p.pct >= 50 ? "#22c55e" : p.pct >= 40 ? "#f59e0b" : "#ef4444", fontWeight: 700 }}>{p.pct.toFixed(1)}%</span>
+                      </div>
+                      <div style={{ background: "#1e293b", borderRadius: 3, height: 4 }}>
+                        <div style={{ height: "100%", background: p.pct >= 50 ? "#22c55e" : p.pct >= 40 ? "#f59e0b" : "#ef4444", width: `${Math.min(p.pct, 100)}%`, borderRadius: 3 }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                        <span style={{ fontSize: 10, color: "#475569" }}>Real: {p.realisasi.toLocaleString('id-ID', { maximumFractionDigits: 0 })} T</span>
+                        <span style={{ fontSize: 10, color: "#334155" }}>Stok: {p.stok.toLocaleString('id-ID', { maximumFractionDigits: 0 })} T</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ===== HARIAN TAB ===== */}
+        {activeTab === "harian" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14, marginBottom: 14 }}>
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>Realisasi Harian Total — April 2026</div>
+                    <div style={{ fontSize: 11, color: "#475569" }}>Hari 1–13 (10 hari efektif) · Prognosa Harian: 10.764 Ton</div>
+                  </div>
+                  <div style={{ background: "#1e293b", borderRadius: 8, padding: "8px 14px", textAlign: "center" }}>
+                    <div style={{ fontSize: 10, color: "#475569" }}>Rata-rata Harian</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#60a5fa", fontFamily: "monospace" }}>11.482</div>
+                    <div style={{ fontSize: 10, color: "#475569" }}>Ton/hari</div>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={harianData} margin={{ left: -15, right: 10 }}>
+                    <defs>
+                      <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <XAxis dataKey="hari" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} label={{ value: "Tanggal", position: "insideBottom", offset: -2, fill: "#475569", fontSize: 10 }} />
+                    <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Line type="monotone" dataKey={() => 10764} name="Target Harian" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
+                    <Area type="monotone" dataKey="total" name="Total" stroke="#3b82f6" strokeWidth={2} fill="url(#grad1)" dot={{ fill: "#3b82f6", r: 3 }} activeDot={{ r: 5 }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Realisasi Harian per Produk</div>
+                <div style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>UREA & NPK Phonska (produk dominan)</div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={harianData} margin={{ left: -15, right: 10 }} stackOffset="expand">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <XAxis dataKey="hari" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11, color: "#94a3b8" }} />
+                    <Bar dataKey="urea" name="UREA" fill="#1d4ed8" stackId="a" />
+                    <Bar dataKey="npk" name="NPK Phonska" fill="#059669" stackId="a" />
+                    <Bar dataKey="organik" name="Organik" fill="#d97706" stackId="a" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Tabel harian */}
+            <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 14 }}>Tabel Realisasi Harian</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #1e3a5f" }}>
+                      {["Tgl", "Total", "UREA", "NPK Phonska", "Organik", "ZA", "SP36"].map(h => (
+                        <th key={h} style={{ padding: "8px 10px", textAlign: "right", color: "#64748b", fontWeight: 600, fontSize: 11 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {harianData.map((row, i) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #0f1f30", background: row.total === 0 ? "#0a1120" : "transparent" }}>
+                        <td style={{ padding: "7px 10px", color: "#64748b", fontFamily: "monospace", textAlign: "right" }}>{row.hari}</td>
+                        <td style={{ padding: "7px 10px", color: "#f1f5f9", fontFamily: "monospace", textAlign: "right", fontWeight: 700 }}>{row.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
+                        <td style={{ padding: "7px 10px", color: "#93c5fd", fontFamily: "monospace", textAlign: "right" }}>{row.urea.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
+                        <td style={{ padding: "7px 10px", color: "#6ee7b7", fontFamily: "monospace", textAlign: "right" }}>{row.npk.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
+                        <td style={{ padding: "7px 10px", color: "#fcd34d", fontFamily: "monospace", textAlign: "right" }}>{row.organik.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
+                        <td style={{ padding: "7px 10px", color: "#f9a8d4", fontFamily: "monospace", textAlign: "right" }}>{row.za.toLocaleString('id-ID', { maximumFractionDigits: 2 })}</td>
+                        <td style={{ padding: "7px 10px", color: "#67e8f9", fontFamily: "monospace", textAlign: "right" }}>{row.sp36.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ borderTop: "2px solid #1e3a5f", background: "#0f172a" }}>
+                      <td style={{ padding: "8px 10px", color: "#f59e0b", fontWeight: 700, textAlign: "right" }}>Total</td>
+                      {["total", "urea", "npk", "organik", "za", "sp36"].map(key => (
+                        <td key={key} style={{ padding: "8px 10px", color: "#f1f5f9", fontFamily: "monospace", textAlign: "right", fontWeight: 700 }}>
+                          {harianData.reduce((a, b) => a + (b[key] || 0), 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ===== MANAGER TAB ===== */}
+        {activeTab === "manager" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 14 }}>
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Realisasi per Manager — April 2026</div>
+                <div style={{ fontSize: 11, color: "#475569", marginBottom: 16 }}>All Produk · Satuan: Ton</div>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={managerData} layout="vertical" margin={{ left: 10, right: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                    <XAxis type="number" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis dataKey="name" type="category" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} width={100} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="prognosa" name="Prognosa" fill="#1e3a5f" radius={[0, 3, 3, 0]} />
+                    <Bar dataKey="realisasi" name="Realisasi" fill="#3b82f6" radius={[0, 3, 3, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 10, padding: "20px 22px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 16 }}>Ranking Pencapaian</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {managerData.sort((a, b) => b.pct - a.pct).map((m, i) => (
+                    <div key={i}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{
+                            width: 22, height: 22, borderRadius: 4, fontSize: 11, fontWeight: 700,
+                            background: i === 0 ? "#16a34a22" : "#1e3a5f",
+                            color: i === 0 ? "#22c55e" : "#64748b",
+                            display: "flex", alignItems: "center", justifyContent: "center"
+                          }}>{i + 1}</div>
+                          <span style={{ fontSize: 12, color: "#e2e8f0" }}>{m.name}</span>
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace", color: m.pct >= 50 ? "#22c55e" : m.pct >= 40 ? "#f59e0b" : "#ef4444" }}>{m.pct.toFixed(1)}%</span>
+                      </div>
+                      <div style={{ background: "#1e293b", borderRadius: 3, height: 4 }}>
+                        <div style={{ height: "100%", background: m.pct >= 50 ? "#22c55e" : m.pct >= 40 ? "#f59e0b" : "#3b82f6", width: `${Math.min(m.pct, 100)}%`, borderRadius: 3 }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                        <span style={{ fontSize: 10, color: "#475569" }}>Real: {m.realisasi.toLocaleString('id-ID', { maximumFractionDigits: 0 })} T</span>
+                        <span style={{ fontSize: 10, color: "#334155" }}>Prog: {m.prognosa.toLocaleString('id-ID', { maximumFractionDigits: 0 })} T</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+      </div>
+
+      {/* Footer */}
+      <div style={{ background: "#0a1120", borderTop: "1px solid #1e293b", padding: "12px 28px", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
+        <div style={{ fontSize: 11, color: "#334155" }}>Data: Laporan_Realisasi_Harian_Penyaluran_PSO_Regional_3 · 13 April 2026</div>
+        <div style={{ fontSize: 11, color: "#334155" }}>PSO = Public Service Obligation · Regional 3 mencakup 7 Provinsi</div>
+      </div>
+    </div>
+  );
+}
